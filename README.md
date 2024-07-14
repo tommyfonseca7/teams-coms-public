@@ -2,7 +2,7 @@
 
 Team Coms is a web application built with Vite.js and React, utilizing Tailwind CSS, Shadcn/UI, and Material-UI for styling. It integrates with Firebase services including Authentication, Firestore for data storage, and Firebase Storage for managing schedules pdfs and images.
 
-The application was originally developed for a golf company to enhance communication among collaborators. It is designed to facilitate seamless interaction and information sharing within teams.
+The application was originally developed for a golf company to enhance communication among collaborators. It is designed to facilitate seamless interaction and information sharing within teams. Team Coms is optimized for both mobile and desktop experiences, ensuring seamless usability across all devices.
 
 ## Deployment
 
