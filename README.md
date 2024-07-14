@@ -1,30 +1,54 @@
-# React + TypeScript + Vite
+# Team Coms
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Team Coms is a web application built with Vite.js and React, utilizing Tailwind CSS, Shadcn/UI, and Material-UI for styling. It integrates with Firebase services including Authentication, Firestore for data storage, and Firebase Storage for managing schedules pdfs and images.
 
-Currently, two official plugins are available:
+The application was originally developed for a golf company to enhance communication among collaborators. It is designed to facilitate seamless interaction and information sharing within teams. Team Coms is optimized for both mobile and desktop experiences, ensuring seamless usability across all devices.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Deployment
 
-## Expanding the ESLint configuration
+The application is currently deployed and accessible at [Team Coms Public](https://teams-coms-public.vercel.app/). To fully experience its functionality, you can register an account and explore its features.
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## Local Setup
 
-- Configure the top-level `parserOptions` property like this:
+To run the application locally on your machine, follow these steps:
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
-```
+1. Clone the repository:
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+   ```bash
+   git clone https://github.com/tommyfonseca7/teams-coms-public.git
+   cd teams-coms-public
+   ```
+
+2. Create a `.env` file in the root directory of the project and add your Firebase configuration keys. Example `.env` file:
+
+   ```plaintext
+   VITE_API_KEY=your_firebase_api_key
+   VITE_AUTH_DOMAIN=your_firebase_auth_domain
+   VITE_PROJECT_ID=your_firebase_project_id
+   VITE_STORAGE_BUCKET=your_firebase_storage_bucket
+   VITE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
+   VITE_APP_ID=your_firebase_app_id
+   VITE_MEASUREMENT_ID=your_firebase_measurement_id
+   ```
+
+   Replace `your_firebase_...` values with your actual Firebase project configuration details.
+
+3. Install dependencies and run the development server:
+
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+   This will start the development server. Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
+
+## Features
+
+- **User Authentication:** Secure user registration and login using Firebase Authentication.
+- **Data Storage:** Utilizes Firestore to store and manage data efficiently.
+- **File Storage:** Firebase Storage integration for storing schedules and images.
+
+## Contributing
+
+Contributions are welcome! If you encounter any issues or have suggestions for improvements, please feel free to open an issue or submit a pull request.
+
