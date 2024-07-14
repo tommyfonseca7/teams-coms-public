@@ -53,7 +53,7 @@ function Register() {
             email: user.email,
             name: data.nome,
             uid: user.uid,
-            role: "None",
+            role: "admin",
           });
         }
         console.log("User Registered Successfully!!");
