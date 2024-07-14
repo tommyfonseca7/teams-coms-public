@@ -9,6 +9,7 @@ import {
   where,
   addDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
 } from "firebase/firestore";
 import { Button } from "./components/ui/button";
@@ -16,7 +17,14 @@ import TopBar from "./Topbar";
 import CircularIndeterminate from "./CircularIndeterminate";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import DownloadIcon from "@mui/icons-material/Download";
-import { getDownloadURL, listAll, ref, uploadBytes } from "firebase/storage";
+import DeleteIcon from "@mui/icons-material/Delete";
+import {
+  getDownloadURL,
+  listAll,
+  ref,
+  uploadBytes,
+  deleteObject,
+} from "firebase/storage";
 import { v4 } from "uuid";
 import { Input } from "./components/ui/input";
 import { Label } from "./components/ui/label";
@@ -30,23 +38,23 @@ import {
   DialogTitle,
 } from "./components/ui/dialog";
 
-const getCurrentMonthInPortuguese = () => {
-  const months = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
-  ];
-  const currentMonthIndex = new Date().getMonth();
-  return months[currentMonthIndex];
+const months = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
+
+const getCurrentMonthInPortuguese = (monthIndex: number) => {
+  return months[monthIndex];
 };
 
 const Horario: React.FC = () => {
@@ -54,9 +62,16 @@ const Horario: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [horarioUpload, setHorarioUpload] = useState<File | null>(null);
   const [lastUploadedUrl, setLastUploadedUrl] = useState<string | null>(null);
+  const [lastUploadedFileRef, setLastUploadedFileRef] = useState<any>(null);
   const [colaborador, setColaborador] = useState<string>("");
   const [mudancas, setMudancas] = useState<string>("");
   const [changes, setChanges] = useState<any[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear()
+  );
+  const [selectedMonth, setSelectedMonth] = useState<number>(
+    new Date().getMonth()
+  );
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -96,17 +111,32 @@ const Horario: React.FC = () => {
       setLoading(false);
     };
 
-    const horarioListRef = ref(storage, "horario/");
-    listAll(horarioListRef).then((response) => {
-      response.items.forEach((item) => {
-        getDownloadURL(item).then((url) => {
-          setLastUploadedUrl(url); // Set only the last uploaded URL
-        });
-      });
-    });
-
     fetchUserData();
   }, []);
+
+  useEffect(() => {
+    // Fetch the latest horario based on the selected year and month
+    const fetchLatestHorario = () => {
+      const horarioListRef = ref(
+        storage,
+        `horario/${selectedYear}/${selectedMonth}/`
+      );
+      listAll(horarioListRef).then((response) => {
+        if (response.items.length > 0) {
+          const lastItem = response.items[response.items.length - 1];
+          getDownloadURL(lastItem).then((url) => {
+            setLastUploadedUrl(url);
+            setLastUploadedFileRef(lastItem);
+          });
+        } else {
+          setLastUploadedUrl(null);
+          setLastUploadedFileRef(null);
+        }
+      });
+    };
+
+    fetchLatestHorario();
+  }, [selectedYear, selectedMonth]);
 
   useEffect(() => {
     // Fetch changes from Firestore
@@ -175,13 +205,39 @@ const Horario: React.FC = () => {
     if (!horarioUpload) {
       return;
     }
-    const horarioRef = ref(storage, `horario/${horarioUpload.name + v4()}`);
+    const horarioRef = ref(
+      storage,
+      `horario/${selectedYear}/${selectedMonth}/${horarioUpload.name + v4()}`
+    );
     uploadBytes(horarioRef, horarioUpload).then(() => {
       alert("File uploaded successfully");
       getDownloadURL(horarioRef).then((url) => {
         setLastUploadedUrl(url); // Update last uploaded URL after upload
+        setLastUploadedFileRef(horarioRef);
       });
     });
+  };
+
+  const deleteHorario = async () => {
+    if (!lastUploadedFileRef) return;
+
+    try {
+      await deleteObject(lastUploadedFileRef);
+      setLastUploadedUrl(null);
+      setLastUploadedFileRef(null);
+      alert("Horário deleted successfully");
+    } catch (error) {
+      console.error("Error deleting horário: ", error);
+    }
+  };
+
+  const deleteChange = async (changeId: string) => {
+    try {
+      await deleteDoc(doc(db, "Changes", changeId));
+      alert("Change deleted successfully");
+    } catch (error) {
+      console.error("Error deleting change: ", error);
+    }
   };
 
   if (loading) {
@@ -193,42 +249,77 @@ const Horario: React.FC = () => {
       <TopBar />
       <div className="flex flex-col items-center min-h-screen bg-gray-100 pt-20">
         <div className="w-full flex justify-center p-5">
-          {currentUser &&
-          (currentUser.role === "admin" || currentUser.role === "moderator") ? (
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col items-center justify-between">
-                <div className="grid w-full max-w-sm items-center gap-1.5">
-                  <Label htmlFor="horarioUpload">Horario</Label>
-                  <Input
-                    id="horarioUpload"
-                    type="file"
-                    onChange={(event) => {
-                      if (event.target.files?.length) {
-                        setHorarioUpload(event.target.files[0]);
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                className="flex items-center text-[#23423a] border-[#23423a] mx-3 mt-5"
-                onClick={uploadHorario}
+          <div className="flex flex-col items-center justify-between">
+            <div className="grid w-full max-w-sm items-center gap-1.5">
+              <Label htmlFor="year">Ano</Label>
+              <Input
+                id="year"
+                type="number"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="col-span-4"
+              />
+              <Label htmlFor="month">Mês</Label>
+              <select
+                id="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                className="col-span-4 bg-white p-1"
               >
-                Enviar
-              </Button>
+                {months.map((month, index) => (
+                  <option key={index} value={index}>
+                    {month}
+                  </option>
+                ))}
+              </select>
+              {currentUser &&
+                (currentUser.role === "admin" ||
+                  currentUser.role === "moderator") && (
+                  <>
+                    <Label htmlFor="horarioUpload">Horário</Label>
+                    <Input
+                      id="horarioUpload"
+                      type="file"
+                      placeholder="Selecione um ficheiro"
+                      onChange={(event) => {
+                        if (event.target.files?.length) {
+                          setHorarioUpload(event.target.files[0]);
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      className="flex items-center text-[#23423a] border-[#23423a] mx-3 mt-5"
+                      onClick={uploadHorario}
+                    >
+                      Enviar
+                    </Button>
+                    {lastUploadedUrl && (
+                      <Button
+                        variant="outline"
+                        className="flex items-center text-red-500 border-red-500 mx-3 mt-5"
+                        onClick={deleteHorario}
+                      >
+                        Apagar Horário
+                        <DeleteIcon
+                          sx={{ color: "red", marginLeft: "0.5rem" }}
+                        />
+                      </Button>
+                    )}
+                  </>
+                )}
             </div>
-          ) : null}
+          </div>
         </div>
         <div className="w-full flex justify-center m-5">
           <Card className="w-full max-w-4xl p-5 mx-4">
             <CardHeader>
               <CardTitle className="mb-2">
-                Horário de {getCurrentMonthInPortuguese()}
+                Horário de {getCurrentMonthInPortuguese(selectedMonth)}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-between">
-              {lastUploadedUrl && (
+              {lastUploadedUrl ? (
                 <a
                   href={lastUploadedUrl}
                   target="_blank"
@@ -244,6 +335,8 @@ const Horario: React.FC = () => {
                     />
                   </Button>
                 </a>
+              ) : (
+                <p>Ainda não existe um horário.</p>
               )}
             </CardContent>
           </Card>
@@ -287,8 +380,8 @@ const Horario: React.FC = () => {
                       value={mudancas}
                       onChange={(e) => setMudancas(e.target.value)}
                       placeholder="Descreve as mudanças aqui"
-                      className="col-span-5 px-3 py-2 border rounded-lg resize-y" // Adjust padding and border as needed
-                      style={{ minHeight: "70px" }} // Adjust minimum height as needed
+                      className="col-span-5 px-3 py-2 border rounded-lg resize-y"
+                      style={{ minHeight: "70px" }}
                     />
                   </div>
                 </div>
@@ -305,15 +398,29 @@ const Horario: React.FC = () => {
               <Card key={change.id} className="max-w-4xl p-5 mx-3 mb-4">
                 <CardHeader>
                   <CardTitle className="mb-2">
-                    Mudança de {change.userName || "Unknown User"} com
-                    {" " + change.colaborador}{" "}
+                    Mudança de {change.userName || "Unknown User"} com{" "}
+                    {" " + change.colaborador}
                   </CardTitle>
                   <p className="text-gray-500 text-sm">
                     {change.timestamp?.toDate().toLocaleDateString()}
                   </p>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex justify-between items-center">
                   <p>{change.mudancas}</p>
+                  {currentUser &&
+                    (currentUser.role === "admin" ||
+                      currentUser.role === "moderator") && (
+                      <Button
+                        variant="outline"
+                        className="flex items-center text-red-500 border-red-500"
+                        onClick={() => deleteChange(change.id)}
+                      >
+                        Apagar
+                        <DeleteIcon
+                          sx={{ color: "red", marginLeft: "0.5rem" }}
+                        />
+                      </Button>
+                    )}
                 </CardContent>
               </Card>
             ))
